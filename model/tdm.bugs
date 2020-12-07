@@ -1,0 +1,50 @@
+model{
+  # i: time/day/year
+  # j: spring/autumn
+  # k: increase/decrease
+  
+  # rho: rate 
+  # theta: base temperature
+  # delta: transition from spring to autumn
+  
+  # n: number of observations
+  
+  for(j in 1:2){
+      rho[j] ~ dunif(0,1)
+      theta[j] ~ dunif(-10, 5)
+  }
+  
+  gamma[1] ~ dunif(Gmin, Gmax)
+  
+  for(i in 2:n){
+  
+    #increase[i] <- ifelse(doy[i]<delta[1], max(Tmax[i] - theta[1], 0)*rho[1], 0)
+    #decrease[i] <- ifelse(doy[i]>delta[2], min(Tmin[i] - theta[2], 0)*rho[2], 0)
+    #gamma[i] <- min(max(gamma[i - 1] + increase[i] + decrease[i], Gmin), Gmax)
+    
+    change[i] <- ifelse(doy[i]<delta, 
+                        max(Tmax[i] - theta[1], 0)*rho[1], 
+                        min(Tmin[i] - theta[2], 0)*rho[2])
+                        
+    gamma[i] <- min(max(gamma[i - 1] + change[i], Gmin), Gmax)
+
+    
+  }
+
+  for(i in 1:n){
+    G[i] ~ dnorm(gamma[i], tau)
+    Gp[i] ~ dnorm(gamma[i], tau)
+  }
+
+  #non-informative prioir
+  #delta[1] ~ dunif(1, 365)
+  #delta[2] ~ dunif(delta[1], 365)
+  delta ~ dunif(120,300)
+  
+  Gmin ~ dunif(0 - 0.01, gmin + 0.005)
+  Gmax ~ dunif(gmax - 0.005, gmax + 0.01)
+  
+  tau <- pow(sigma, -2)
+	sigma ~ dunif(0, 100)
+  
+}
